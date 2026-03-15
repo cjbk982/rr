@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+
+<!-- PWA Meta -->
+<meta name="application-name" content="Rune Raider">
+<meta name="theme-color" content="#0a0a1a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="msapplication-TileColor" content="#0a0a1a">
+<meta name="msapplication-TileImage" content="icon-144.png">
+
+<!-- Apple PWA Meta -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Rune Raider">
+<link rel="apple-touch-icon" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="152x152" href="icon-152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+
+<!-- Apple Splash Screens -->
+<link rel="apple-touch-startup-image" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3)" href="splash-1170x2532.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)" href="splash-1125x2436.png">
+<link rel="apple-touch-startup-image" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2)" href="splash-828x1792.png">
+<link rel="apple-touch-startup-image" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2)" href="splash-750x1334.png">
+<link rel="apple-touch-startup-image" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2)" href="splash-640x1136.png">
+
+<!-- Manifest & Favicon -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/x-icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="icon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="icon-16.png">
+
+<title>Rune Raider</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a1a;
+    --gold: #ffd700;
+    --red: #ff4444;
+    --green: #44ff88;
+    --blue: #4488ff;
+    --purple: #aa44ff;
+    --cyan: #44ffff;
+    --brick: #8b5e3c;
+    --brick-dark: #5c3d28;
+    --ladder: #c8a050;
+    --text: #f0e8d8;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: var(--bg);
+    font-family: 'Press Start 2P', monospace;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #gameContainer {
+    width: 100%; height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+  }
+
+  canvas {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    background: #0d0d24;
+  }
+
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: var(--safe-top); left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 70%, transparent 100%);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .hud-item {
+    font-size: 9px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+    text-shadow: 0 0 6px rgba(255,215,0,0.4);
+    white-space: nowrap;
+  }
+  .hud-item span { color: var(--gold); }
+  .hud-lives span { color: var(--red); }
+  .hud-level span { color: var(--cyan); }
+  .hud-name {
+    font-size: 7px;
+    color: rgba(255,255,255,0.25);
+    text-align: center;
+    flex-shrink: 1;
+    overflow: hidden;
+  }
+
+  /* Pause button */
+  #pauseBtn {
+    position: absolute;
+    top: calc(var(--safe-top) + 32px);
+    right: 8px;
+    width: 36px; height: 36px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    color: rgba(255,255,255,0.3);
+    font-size: 16px;
+    z-index: 15;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    font-family: system-ui;
+  }
+  #pauseBtn.show { display: flex; }
+  #pauseBtn:active { background: rgba(255,215,0,0.2); color: var(--gold); }
+
+  /* Touch Controls */
+  #touchControls {
+    position: absolute;
+    bottom: var(--safe-bottom); left: 0; right: 0;
+    height: 170px;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px 20px;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  .touch-dpad {
+    width: 144px; height: 144px;
+    position: relative;
+    pointer-events: auto;
+  }
+
+  .dpad-btn {
+    position: absolute;
+    width: 48px; height: 48px;
+    background: rgba(255,255,255,0.06);
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 18px;
+    transition: background 0.08s, border-color 0.08s;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .dpad-btn.active {
+    background: rgba(255,215,0,0.2);
+    border-color: rgba(255,215,0,0.45);
+    color: var(--gold);
+  }
+
+  .dpad-up    { top: 0;    left: 50%; transform: translateX(-50%); }
+  .dpad-down  { bottom: 0; left: 50%; transform: translateX(-50%); }
+  .dpad-left  { left: 0;   top: 50%; transform: translateY(-50%); }
+  .dpad-right { right: 0;  top: 50%; transform: translateY(-50%); }
+
+  .touch-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: auto;
+  }
+
+  .action-btn {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    background: rgba(255,68,68,0.08);
+    border: 2px solid rgba(255,68,68,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.35);
+    font-size: 8px;
+    letter-spacing: 0.5px;
+    font-family: 'Press Start 2P', monospace;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+  }
+
+  .action-btn.active {
+    background: rgba(255,68,68,0.25);
+    border-color: rgba(255,68,68,0.5);
+    color: var(--red);
+  }
+
+  /* Overlay Screens */
+  .overlay {
+    position: absolute;
+    inset: 0;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    gap: 24px;
+    padding: 20px;
+  }
+  .overlay.show { display: flex; }
+
+  #titleScreen {
+    background: var(--bg);
+    gap: 20px;
+  }
+  #titleScreen.show { display: flex; }
+
+  #titleScreen h1 {
+    font-size: clamp(18px, 5vw, 34px);
+    color: var(--gold);
+    text-shadow: 0 0 20px rgba(255,215,0,0.6), 0 4px 0 #b8860b;
+    letter-spacing: 4px;
+    animation: titlePulse 2s ease-in-out infinite;
+    text-align: center;
+  }
+
+  @keyframes titlePulse {
+    0%, 100% { text-shadow: 0 0 20px rgba(255,215,0,0.6), 0 4px 0 #b8860b; }
+    50% { text-shadow: 0 0 40px rgba(255,215,0,0.9), 0 4px 0 #b8860b, 0 0 80px rgba(255,215,0,0.3); }
+  }
+
+  .title-subtitle {
+    font-size: clamp(7px, 1.8vw, 11px);
+    color: var(--cyan);
+    letter-spacing: 3px;
+    opacity: 0.7;
+    text-align: center;
+  }
+
+  .start-btn {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(10px, 2.5vw, 14px);
+    color: var(--text);
+    background: transparent;
+    border: 2px solid var(--gold);
+    padding: 14px 28px;
+    cursor: pointer;
+    letter-spacing: 2px;
+    animation: blink 1.2s step-end infinite;
+    transition: all 0.15s;
+  }
+  .start-btn:hover, .start-btn:active {
+    background: rgba(255,215,0,0.15);
+    transform: scale(1.05);
+    animation: none;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  .title-instructions {
+    font-size: 7px;
+    color: rgba(255,255,255,0.3);
+    text-align: center;
+    line-height: 2.2;
+    max-width: 340px;
+  }
+
+  .title-instructions .desktop-only { display: inline; }
+  .title-instructions .mobile-only { display: none; }
+
+  /* Level Complete */
+  #levelComplete { background: rgba(0,0,0,0.88); }
+  #levelComplete h2 {
+    font-size: clamp(14px, 3.5vw, 24px);
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(68,255,136,0.5);
+    letter-spacing: 3px;
+  }
+
+  /* Pause */
+  #pauseScreen { background: rgba(0,0,0,0.8); }
+  #pauseScreen h2 {
+    font-size: clamp(14px, 3.5vw, 24px);
+    color: var(--cyan);
+    text-shadow: 0 0 20px rgba(68,255,255,0.5);
+    letter-spacing: 3px;
+  }
+
+  /* Game Over */
+  #gameOver { background: rgba(0,0,0,0.92); }
+  #gameOver h2 {
+    font-size: clamp(16px, 4vw, 28px);
+    color: var(--red);
+    text-shadow: 0 0 20px rgba(255,68,68,0.5);
+    letter-spacing: 3px;
+  }
+
+  /* Win Screen */
+  #winScreen { background: rgba(0,0,0,0.88); }
+  #winScreen h2 {
+    font-size: clamp(14px, 3.5vw, 24px);
+    color: var(--gold);
+    text-shadow: 0 0 30px rgba(255,215,0,0.6);
+    letter-spacing: 3px;
+  }
+
+  .level-stats {
+    font-size: 9px;
+    color: var(--text);
+    text-align: center;
+    line-height: 2.5;
+  }
+  .level-stats span { color: var(--gold); }
+
+  /* Install Banner */
+  #installBanner {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 14px 20px calc(14px + var(--safe-bottom));
+    background: linear-gradient(180deg, rgba(10,10,26,0.95), rgba(10,10,26,1));
+    border-top: 1px solid rgba(255,215,0,0.2);
+    z-index: 200;
+    font-size: 9px;
+    color: var(--text);
+    letter-spacing: 0.5px;
+  }
+  #installBanner.show { display: flex; }
+
+  #installBanner button {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 8px;
+    padding: 8px 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    border: none;
+  }
+  #installBtn {
+    background: var(--gold);
+    color: #1a1a00;
+  }
+  #installDismiss {
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.4);
+    border: 1px solid rgba(255,255,255,0.12) !important;
+  }
+
+  /* Scanlines */
+  #scanlines {
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent, transparent 2px,
+      rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px
+    );
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  #particleCanvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 6;
+  }
+
+  /* Responsive: show touch controls on small/touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    #touchControls { display: flex !important; }
+    .title-instructions .desktop-only { display: none; }
+    .title-instructions .mobile-only { display: inline; }
+  }
+  @media (max-width: 767px) {
+    #touchControls { display: flex !important; }
+    .title-instructions .desktop-only { display: none; }
+    .title-instructions .mobile-only { display: inline; }
+  }
+</style>
+</head>
+<body>
+<div id="gameContainer">
+  <div id="scanlines"></div>
+  <canvas id="particleCanvas"></canvas>
+
+  <div id="hud">
+    <div class="hud-item hud-lives">♥ <span id="hudLives">3</span></div>
+    <div class="hud-item">SCORE <span id="hudScore">0</span></div>
+    <div class="hud-name" id="hudName"></div>
+    <div class="hud-item">GEMS <span id="hudGems">0/0</span></div>
+    <div class="hud-item hud-level">LVL <span id="hudLevel">1</span></div>
+  </div>
+
+  <button id="pauseBtn" aria-label="Pause">❚❚</button>
+
+  <canvas id="gameCanvas"></canvas>
+
+  <div id="touchControls">
+    <div class="touch-dpad">
+      <div class="dpad-btn dpad-up" data-dir="up">▲</div>
+      <div class="dpad-btn dpad-down" data-dir="down">▼</div>
+      <div class="dpad-btn dpad-left" data-dir="left">◀</div>
+      <div class="dpad-btn dpad-right" data-dir="right">▶</div>
+    </div>
+    <div class="touch-actions">
+      <div class="action-btn" data-action="digL">DIG ◀</div>
+      <div class="action-btn" data-action="digR">DIG ▶</div>
+    </div>
+  </div>
+
+  <!-- TITLE SCREEN -->
+  <div id="titleScreen" class="overlay show">
+    <div class="title-subtitle">⚔ A RETRO PLATFORMER ⚔</div>
+    <h1>RUNE RAIDER</h1>
+    <div class="title-subtitle">COLLECT ALL GEMS · ESCAPE THE LEVEL</div>
+    <canvas id="titlePreview" width="192" height="96" style="image-rendering:pixelated; width:192px; height:96px;"></canvas>
+    <button class="start-btn" id="startBtn">▶ START GAME</button>
+    <div class="title-instructions">
+      <span class="desktop-only">
+        ARROWS / WASD: MOVE &amp; CLIMB<br>
+        Z: DIG LEFT · X: DIG RIGHT<br>
+        P: PAUSE · ESC: MENU
+      </span>
+      <span class="mobile-only">
+        D-PAD: MOVE &amp; CLIMB<br>
+        DIG BUTTONS: BREAK GOLD BRICKS<br>
+        COLLECT ALL GEMS TO OPEN EXIT
+      </span>
+    </div>
+  </div>
+
+  <!-- LEVEL COMPLETE -->
+  <div id="levelComplete" class="overlay">
+    <h2>LEVEL COMPLETE!</h2>
+    <div class="level-stats" id="levelStats"></div>
+    <button class="start-btn" id="nextLevelBtn">NEXT LEVEL ▶</button>
+  </div>
+
+  <!-- PAUSE -->
+  <div id="pauseScreen" class="overlay">
+    <h2>PAUSED</h2>
+    <button class="start-btn" id="resumeBtn">▶ RESUME</button>
+    <button class="start-btn" id="quitBtn" style="font-size:9px; padding:10px 20px; border-color: rgba(255,255,255,0.2); animation:none;">QUIT TO TITLE</button>
+  </div>
+
+  <!-- GAME OVER -->
+  <div id="gameOver" class="overlay">
+    <h2>GAME OVER</h2>
+    <div class="level-stats" id="finalStats"></div>
+    <button class="start-btn" id="retryBtn">▶ TRY AGAIN</button>
+  </div>
+
+  <!-- WIN SCREEN -->
+  <div id="winScreen" class="overlay">
+    <h2>★ VICTORY! ★</h2>
+    <div class="level-stats" id="winStats"></div>
+    <button class="start-btn" id="playAgainBtn">▶ PLAY AGAIN</button>
+  </div>
+
+  <!-- INSTALL BANNER -->
+  <div id="installBanner">
+    <span>Install as app?</span>
+    <button id="installBtn">INSTALL</button>
+    <button id="installDismiss">LATER</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// SERVICE WORKER REGISTRATION
+// ============================================================
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('[App] SW registered:', reg.scope))
+      .catch(err => console.log('[App] SW registration failed:', err));
+  });
+}
+
+// ============================================================
+// PWA INSTALL PROMPT
+// ============================================================
+let deferredPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  // Show install banner after a short delay (don't interrupt title screen)
+  setTimeout(() => {
+    document.getElementById('installBanner').classList.add('show');
+  }, 3000);
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('[App] Install outcome:', outcome);
+  deferredPrompt = null;
+  document.getElementById('installBanner').classList.remove('show');
+});
+
+document.getElementById('installDismiss').addEventListener('click', () => {
+  document.getElementById('installBanner').classList.remove('show');
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('[App] Installed!');
+  document.getElementById('installBanner').classList.remove('show');
+  deferredPrompt = null;
+});
+
+// ============================================================
+// AUDIO ENGINE (Web Audio API — tiny synth)
+// ============================================================
+const Audio = (() => {
+  let ctx = null;
+  function ensure() {
+    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (ctx.state === 'suspended') ctx.resume();
+    return ctx;
+  }
+
+  function play(freq, duration, type='square', vol=0.08) {
+    try {
+      const c = ensure();
+      const osc = c.createOscillator();
+      const gain = c.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, c.currentTime);
+      gain.gain.setValueAtTime(vol, c.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(c.destination);
+      osc.start(c.currentTime);
+      osc.stop(c.currentTime + duration);
+    } catch(e) {}
+  }
+
+  return {
+    gem()       { play(880, 0.1); setTimeout(() => play(1320, 0.15), 60); },
+    dig()       { play(120, 0.12, 'sawtooth', 0.06); },
+    hurt()      { play(200, 0.3, 'sawtooth', 0.1); setTimeout(() => play(100, 0.3, 'sawtooth', 0.08), 100); },
+    exitOpen()  { play(523, 0.12); setTimeout(() => play(659, 0.12), 80); setTimeout(() => play(784, 0.2), 160); },
+    complete()  { [0,80,160,240,320].forEach((t,i) => setTimeout(() => play([523,659,784,1047,1320][i], 0.2, 'square', 0.07), t)); },
+    trap()      { play(300, 0.12, 'triangle', 0.06); },
+    pause()     { play(440, 0.05, 'triangle', 0.04); },
+    btn()       { play(660, 0.04, 'triangle', 0.03); },
+  };
+})();
+
+// ============================================================
+// GAME CONSTANTS
+// ============================================================
+const TILE = 16;
+const COLS = 26;
+const ROWS = 16;
+
+const T = {
+  EMPTY: 0, BRICK: 1, LADDER: 2, ROPE: 3, GEM: 4,
+  PLAYER: 5, ENEMY: 6, EXIT: 7, GOLD_BRICK: 8,
+  HIDDEN_LADDER: 9, SPIKE: 10, DUG: 11
+};
+
+const PAL = {
+  bg:'#0d0d24', brick:'#8b5e3c', brickHi:'#a0714a', brickDk:'#5c3d28',
+  gold:'#ffd700', goldDk:'#b8960b',
+  ladder:'#c8a050', ladderDk:'#8a6e38',
+  rope:'#a08860',
+  gem1:'#44ffaa', gem2:'#00dd77', gem3:'#88ffdd',
+  player1:'#4488ff', player2:'#2266dd', playerSkin:'#ffcc99',
+  enemy1:'#ff4466', enemy2:'#cc2244', enemySkin:'#ddaa88',
+  exit1:'#ffd700', exit2:'#ff8800',
+  spike:'#888899',
+  goldBrick:'#daa520', goldBrHi:'#f0c848',
+};
+
+// ============================================================
+// LEVELS (20 progressively harder)
+// ============================================================
+const LEVELS = [
+  // === WORLD 1: FOUNDATIONS (Levels 1-5) ===
+  { name:"THE DESCENT", map:[
+    "..........................","..........................","..4.....4.....4.....4....",
+    "BBBBBB..BBBBBB..BBBBBBBB.","......H.........H........","......H....4....H........",
+    "..BBBBHBBBBBBBBBHBBBB....","..............H..........","....4.........H....4.....",
+    "BBBBBBBBB.....HBBBBBBBBB.","..........H..............","..........H.....4........",
+    "....BBBBBBHBBBBBBBBBB....","..........................","5.........................7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"GUARD PATROL", map:[
+    "..........................","..4.......4.......4......","BBBBBB..BBBBBB..BBBBBBBBB",
+    "......H.........H........","......H..6......H........","..BBBBHBBBBBBBBBHBBBB....",
+    "..............H..........","....4.........H....4.....",".BBBBBBBB.....HBBBBBBBBB.",
+    "..........H..............","..........H..............","....BBBBBBHBBBBBBBB......",
+    ".....4............6..4...","BBBBBBBBB......BBBBBBBBBB","5.........................7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"ROPE BRIDGES", map:[
+    "..........................","..4...........4..........","BBBBB..~~~~~~~..BBBBBBB..",
+    ".....H..........H........",".....H....4.....H........","..BBBHBB~~~~~~BBHBBB.....",
+    "..........H..............","..........H.....4........","BBBBB.....HBBBBBBBBBB....",
+    "....6.H..................","......H...~~~~~~~........","..BBBBHBBB.......BBBBB...",
+    "..............H......4...","..4...........H..........",".BBBBBBBB.....HBBBBBBBBB7",
+    "5.........BBBBBBBBBBBBBBB"]},
+  { name:"DIG DEEP", map:[
+    "..........................","..4..........4...........","BBGGBBBB..BBBBBB..BBBBBB.",
+    "......H..........H.......","......H....4.....H.......","..BBBBHBBGGBBBBBBHBB.....",
+    "..............H..........","....4.........H....4.....",".BBBBBBBBB....HBBBBBBGGB.",
+    "..........H..............",".....6....H..............","....GGBBBBHBBBBBBGGBB....",
+    "..............H......4...","..4...........H..........",".BBBBBGGBB....HBBBBBBBBB7",
+    "5.........BBBBBBBBBBBBBBB"]},
+  { name:"CROSSROADS", map:[
+    "..4...........4..........",".BBBBB..~~~~~~..BBBBBB...",".....H..........H........",
+    ".....H....4.....H........","..BBBHBBBBBBBBBBHBBBB....",".........H......H........",
+    "....4....H....4.H........","BBBGGBB..HBBBBBBHBBGGBBB.","..........H.....H........",
+    "..........H.....H........","..BBBBBBBBHBB~~BHBBBBB...","..............H..........",
+    "....4.........H....4.....","BBBBBBBBB.....HBBBBBBBBBB","5.........................7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+
+  // === WORLD 2: ESCALATION (Levels 6-10) ===
+  { name:"THE GAUNTLET", map:[
+    "..4.......4.......4......","BBBBB..BBBBBBB..BBBBBBB.B","......H.........H........",
+    "......H...6.....H........","..BBBBHBB~~BBBBBHBBBB....","..........H..............",
+    "....4.....H....4.........","BBGGBBBB..HBBBBBBGGBBBBB.","..........H..............",
+    "..6.......H..............","..BBBBBBBBHBB~~BBBBBBB...","..............H..........",
+    "....4.........H....4..6..","BBBBBBBBB.....HBBGGBBBBBB","5.........................7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"SPIKE CAVERNS", map:[
+    "..........................","..4.......4......4.......","BBBBBB..BBBBBB..BBBBBBB..",
+    "......H.........H........","......H.........H........","..BBBBHBB..^..BBHBBBB....",
+    "..........H..............","....4.....H....4.........","BBBBB.....HBBBBBBBB..^.B.",
+    "....6.H..................","......H..................","..BBBBHBBB...^...BBBBB...",
+    "..............H......4...","..4...........H..........",".BBBBBBBB.....HBBBBBBBBB7",
+    "5...^.....BBBBBBBBBBBBBBB"]},
+  { name:"ENEMY STRONGHOLD", map:[
+    "..4.......4.......4..4...",".BBBBB..BBBBB..BBBBBBBBB.","......H.........H........",
+    "..6...H....6....H........","..BBBBHBB~~BBBBBHBBBB....","..........H..............",
+    "....4.....H....4.........","BBGGBBBB..HBBBBBBGGBBBBB.","..........H..............",
+    "..6.......H..........6...","..BBBBBBBBHBB~~BBBBBBB...","..............H..........",
+    "....4.........H....4.....","BBBBBBBBB.....HBBBBBBBBBB","5.........................7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"THE TOWER", map:[
+    "..4..........4..........7","BBBBB........BBBBB..BBBBB","....H....4........H......",
+    "....H..BBBBBB.....H......","..BBHBB......BBBBBHBB....",".....H..............H....",
+    ".4...H....4.........H..4.","BBBBGHBB..BBBBBBB..HGGBBB","......H...........H......",
+    "..6...H...........H...6..","..BBBBHBBBB~~BBBBBHBBBB..","......H...........H......",
+    "..4...H.....4.....H..4..","..BBBBHBBBB...BBBGHBBBBBB","5.....H...........H......",
+    "BBBBBBBBBBBBBBBBBBBBBBBBB."]},
+  { name:"ROPE LABYRINTH", map:[
+    "..4.....4.....4.....4....",".BBBBB..BBBBB..BBBBB..BB.","......H.......H......H...",
+    "......H.......H......H...","..BBBBH~~BBBBBH~~BBBBH.B.","........H.......H........",
+    "....4...H...4...H...4...","BBBBB...HBBBBB..HBBBBBBBB","........H.......H........",
+    "..6.....H.......H....6..","..BBBBBBHB~~BBBBHBBBBB...","........H.......H........",
+    "....4...H...4...H...4...",".BBBBBBBH.BBBBB.HBBBBBBBB","5.......H.......H........7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+
+  // === WORLD 3: CHALLENGE (Levels 11-15) ===
+  { name:"BURIED TREASURE", map:[
+    "..........................","..4......4.......4.......",".BGGBBBBGGBBBBBBGGBBBBBB.",
+    "..........H..............","....4.....H....4.........","BGGBBBB...HBBBBBBBGGBBBB.",
+    "..........H..............","..........H..............","..BGGBBBBBHBBBBBBGGBBB...",
+    "..............H..........","....4.........H....4.6...",".BBBBBGGBB....HBBBBBBBBBB",
+    "..............H..........","..4...........H..........",".BBBBBBBBB....HBBBBBGGBB7",
+    "5.........BBBBBBBBBBBBBBB"]},
+  { name:"PINCER ATTACK", map:[
+    "..6.......4.......6......","BBBBB..BBBBBBB..BBBBBBB.B","......H.........H........",
+    "......H....4....H........","..BBBBHBB~~BBBBBHBBBB....",".....4....H......4.......",
+    "BBBBBBBBB.HBBBBBBBBBBBBBB","..........H..............","..6.......H..........6...",
+    "..BBBBBBBBHBB~~BBBBBBB...","..............H..........","....4.........H....4.....",
+    "BBBBBGGBB.....HBBGGBBBBBB","..........................","5.........................7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"NEEDLEPOINT", map:[
+    "..........................","..4.....4.....4.....4....",".BBBBB..BBBBB..BBBBB..BB.",
+    ".....H.......H......H....",".....H..^....H..^...H...","..BBBHBBBBBBGHBBBBBGH.BB.",
+    "..........H.......H......","....4.....H...4...H......","BBBB..^...HBBBBB..HBBBB.B",
+    "..........H.......H......","....6.....H.......H..6...","..BBBBBBBBHBB..BBBHBBB...",
+    "..............H......4...",".BBBB..4......H..........",".BBBBBBBB.....HBBBBBBBBB7",
+    "5...^.^...BBBBBBBBBBBBBBB"]},
+  { name:"CROSSFIRE", map:[
+    "..4...4.......4...4......","BBBBB.BBBB..BBBB.BBBBBBB.","....H.....H.....H........",
+    "....H..6..H.....H...6...","BBBBHBB~~BHBBB~~HBBBBBBB.","........H.......H........",
+    "....4...H...4...H...4...",".BGGBBBBHBBBBBBBHBBGGBBB.","........H.......H........",
+    ".6......H.......H......6","..BBBBBBHBB.BBBBHBBBBB...",".........H.....H.........",
+    "....4....H..4..H....4...",".BBBBBBBBHBB..BHBBBBBBBB.","5........H....H..........7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"THE FORTRESS", map:[
+    "..4.4.4.4.4.4.4.4.4.4...",".BBBBBBBBBBBBBBBBBBBBBBB.","..H...................H...",
+    "..H...6.....6.....6..H..","..HBBBBBBB~~BBBBBBBBBH...",".......H........H........",
+    "...4...H....4...H...4...",".BBGGBBHBBBBBBBBHBBGGBB..",".......H........H........",
+    ".......H........H........","..BBBBBHBB^^BBBBHBBBBB...",".......H........H........",
+    "...4...H....4...H...4...",".BBBBBGHBB....BBHGBBBBB.B","5......H........H........7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBB."]},
+
+  // === WORLD 4: MASTERY (Levels 16-20) ===
+  { name:"SKY CLIMB", map:[
+    "..4..........4..........7","BBBBB........BBBBB..BBBBB","....H...4.........H......",
+    "....H..BBBBBB.....H......","..BBHBB......BBBBBHBB....",".....H..............H....",
+    ".4...H....4.........H..4.","BBBBGHBB..BBBBBBB..HGGBBB","......H...........H......",
+    "..6...H...........H...6..","..BBBBHBBBB~~BBBBBHBBBB..","......H...........H......",
+    "..4...H.....4.....H..4..","..BBBBHBBBB...BBBGHBBBBBB","5.....H...........H......",
+    "BBBBBBBBBBBBBBBBBBBBBBBBB."]},
+  { name:"SWARM", map:[
+    "..4...4...4...4...4...4..",".BBBBB.BBB.BBBB.BBB.BBBB.","....H....H....H....H.....",
+    ".6..H....H.6..H...H..6..","BBBBHBB~~HBBBBHBBBBHBBBBb","........H.....H....H.....",
+    "....4...H..4..H..4.H....",".BGGBB..HBBBBBHBBBBHGGBB.","........H.....H....H.....",
+    "..6.....H.....H...H...6.","..BBBBBBHB~~BBHBBBGHBBB..","........H.....H....H.....",
+    "....4...H..4..H..4.H.4..",".BBBBBBBHBB.BBHBBBBHBBBBB","5.......H.....H....H....7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"DEATH TRAP", map:[
+    "..4..........4...........","BBBBB..^..BBBBBBB..BBBBB.","......H.........H........",
+    "..6...H...6.....H....6..","..BBBBHBB~~BBBBBHBBBB....","..........H..............",
+    "..4.^.....H....4.........","BBGGBBBB..HBBBBBBGGBB.^.B","..........H..............",
+    "..........H..............","..BBBBBBBBHBB~~BBBBBBB...","..........^...H..........",
+    "....4.........H....4..6..","BBBBBGGBB.....HBBBBBBBBBB","5...^.............^......7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"LABYRINTH", map:[
+    "..4.4...4.4...4.4...4.4..","BBBBBBB.BBBBB.BBBBB.BBBBB","......H.....H.....H......",
+    "..6...H.....H..6..H..6..","..BBBBHBBBBBHBBBBBHBBBB..","......H.....H.....H......",
+    "..4...H..4..H..4..H..4..","GGBBBBHBBGGBHBBBGGHBBBBGG","......H.....H.....H......",
+    "......H.....H.....H......","..BBBBHBB~~BHBB~~BHBBBB..","......H.....H.....H......",
+    "..4...H..4..H..4..H..4..",".BBBBBHBB...HBB..BHBBBBBB","5.....H.....H.....H.....7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]},
+  { name:"RUNE SANCTUM", map:[
+    "..4.4.4.4.4.4.4.4.4.4.4.","BBBBB.BBB.BBB.BBB.BBB.BBB","...H....H...H...H...H....",
+    ".6.H..6.H...H.6.H.6.H.6.","BBBHB~~BHBBGHBBBHB~~BHBBB","......H.....H.....H......",
+    "..4...H..4..H..4..H..4..","BGGBB.HBBGGBHBBBGGHBBGGBB","......H.....H.....H......",
+    ".6....H.....H.....H....6","BBBBBBHBB^^BHBB^^BHBBBBBB","......H.....H.....H......",
+    "..4...H..4..H..4..H..4..",".BBBBBHBB...H..BBBHBBBBBB","5.....H.....H......H....7",
+    "BBBBBBBBBBBBBBBBBBBBBBBBBB"]}
+];
+
+// ============================================================
+// GAME STATE
+// ============================================================
+const game = {
+  canvas:null, ctx:null, pCanvas:null, pCtx:null,
+  level:0, score:0, lives:3, highScore:0,
+  map:[], player:null, enemies:[],
+  gems:0, totalGems:0, exitOpen:false,
+  state:'title',
+  animFrame:0, time:0,
+  particles:[], dugTiles:[],
+  keys:{}, touchDirs:new Set(), touchActions:new Set(),
+  screenShake:0, scale:1, offsetX:0, offsetY:0,
+  lastTime:0, dt:0,
+};
+
+// Load high score
+try { game.highScore = parseInt(localStorage.getItem('runeraider_hs')) || 0; } catch(e) {}
+
+// ============================================================
+// SPRITE RENDERER
+// ============================================================
+const Sprites = {
+  drawBrick(ctx,x,y) {
+    ctx.fillStyle=PAL.brick; ctx.fillRect(x,y,TILE,TILE);
+    ctx.fillStyle=PAL.brickHi; ctx.fillRect(x,y,TILE,2); ctx.fillRect(x,y,2,TILE);
+    ctx.fillStyle=PAL.brickDk;
+    ctx.fillRect(x+2,y+6,TILE-4,2); ctx.fillRect(x+6,y+2,2,4);
+    ctx.fillRect(x+2,y+12,2,2); ctx.fillRect(x+10,y+10,2,4);
+  },
+  drawGoldBrick(ctx,x,y) {
+    ctx.fillStyle=PAL.goldBrick; ctx.fillRect(x,y,TILE,TILE);
+    ctx.fillStyle=PAL.goldBrHi; ctx.fillRect(x,y,TILE,2); ctx.fillRect(x,y,2,TILE);
+    ctx.fillStyle=PAL.brickDk;
+    ctx.fillRect(x+2,y+6,TILE-4,2); ctx.fillRect(x+6,y+2,2,4);
+    if(Math.sin(game.time*3+x*0.5)>0.7){ctx.fillStyle='#fff';ctx.fillRect(x+4,y+4,2,2);}
+  },
+  drawLadder(ctx,x,y) {
+    ctx.fillStyle=PAL.ladderDk; ctx.fillRect(x+2,y,3,TILE); ctx.fillRect(x+11,y,3,TILE);
+    ctx.fillStyle=PAL.ladder; ctx.fillRect(x+3,y,1,TILE); ctx.fillRect(x+12,y,1,TILE);
+    ctx.fillRect(x+2,y+3,12,2); ctx.fillRect(x+2,y+9,12,2);
+  },
+  drawRope(ctx,x,y) {
+    const w=Math.sin(game.time*2+x*0.3)*1;
+    ctx.fillStyle=PAL.rope; ctx.fillRect(x,y+6+w,TILE,3);
+    ctx.fillStyle='#806840'; ctx.fillRect(x,y+7+w,TILE,1);
+  },
+  drawGem(ctx,x,y) {
+    const b=Math.sin(game.time*3+x*0.5+y*0.3)*2;
+    const gy=y+b;
+    ctx.fillStyle=PAL.gem2;
+    ctx.fillRect(x+5,gy+2,6,2); ctx.fillRect(x+3,gy+4,10,4);
+    ctx.fillRect(x+5,gy+8,6,4); ctx.fillRect(x+7,gy+12,2,2);
+    ctx.fillStyle=PAL.gem1;
+    ctx.fillRect(x+5,gy+2,4,2); ctx.fillRect(x+3,gy+4,6,3);
+    ctx.fillStyle=PAL.gem3; ctx.fillRect(x+5,gy+3,2,2);
+    if(Math.sin(game.time*5+x)>0.5){ctx.fillStyle='#fff';ctx.fillRect(x+6,gy+3,1,1);}
+  },
+  drawPlayer(ctx,x,y,frame,dir) {
+    const f=Math.floor(frame)%4;
+    const lo=(f%2===0)?0:2;
+    ctx.fillStyle=PAL.player1; ctx.fillRect(x+4,y+4,8,6);
+    ctx.fillStyle=PAL.player2; ctx.fillRect(x+4,y+8,8,2);
+    ctx.fillStyle=PAL.playerSkin; ctx.fillRect(x+5,y+1,6,4);
+    // eyes face direction
+    const ex = dir > 0 ? 0 : -1;
+    ctx.fillStyle='#fff'; ctx.fillRect(x+6+ex,y+2,2,2); ctx.fillRect(x+9+ex,y+2,2,2);
+    ctx.fillStyle='#222'; ctx.fillRect(x+7+ex,y+3,1,1); ctx.fillRect(x+10+ex,y+3,1,1);
+    ctx.fillStyle=PAL.player1; ctx.fillRect(x+4,y,8,2); ctx.fillRect(x+6,y-1,4,1);
+    ctx.fillStyle=PAL.player2;
+    ctx.fillRect(x+4,y+10,3,4+lo); ctx.fillRect(x+9,y+10,3,4+(2-lo));
+    ctx.fillStyle='#553322';
+    ctx.fillRect(x+3,y+13+lo,4,2); ctx.fillRect(x+9,y+13+(2-lo),4,2);
+  },
+  drawEnemy(ctx,x,y,frame) {
+    const f=Math.floor(frame)%4, lo=(f%2===0)?0:2;
+    ctx.fillStyle=PAL.enemy1; ctx.fillRect(x+4,y+4,8,6);
+    ctx.fillStyle=PAL.enemy2; ctx.fillRect(x+4,y+8,8,2);
+    ctx.fillStyle=PAL.enemySkin; ctx.fillRect(x+5,y+1,6,4);
+    ctx.fillStyle='#ff0'; ctx.fillRect(x+6,y+2,2,2); ctx.fillRect(x+9,y+2,2,2);
+    ctx.fillStyle='#f00'; ctx.fillRect(x+7,y+3,1,1); ctx.fillRect(x+10,y+3,1,1);
+    ctx.fillStyle=PAL.enemy1;
+    ctx.fillRect(x+4,y,2,2); ctx.fillRect(x+10,y,2,2);
+    ctx.fillRect(x+3,y-1,2,1); ctx.fillRect(x+11,y-1,2,1);
+    ctx.fillStyle=PAL.enemy2;
+    ctx.fillRect(x+4,y+10,3,4+lo); ctx.fillRect(x+9,y+10,3,4+(2-lo));
+  },
+  drawExit(ctx,x,y,open) {
+    if(open){
+      const p=Math.sin(game.time*4)*0.3+0.7;
+      ctx.globalAlpha=p;
+      ctx.fillStyle=PAL.exit1; ctx.fillRect(x+2,y+2,12,12);
+      ctx.fillStyle=PAL.exit2; ctx.fillRect(x+4,y+4,8,8);
+      ctx.fillStyle='#fff'; ctx.fillRect(x+6,y+6,4,4);
+      ctx.globalAlpha=1;
+      ctx.fillStyle=`rgba(255,215,0,${p*0.15})`; ctx.fillRect(x-2,y-2,20,20);
+    } else {
+      ctx.fillStyle='#333'; ctx.fillRect(x+2,y+2,12,12);
+      ctx.fillStyle='#222'; ctx.fillRect(x+4,y+4,8,8);
+      ctx.fillStyle='#444'; ctx.fillRect(x+6,y+2,4,2);
+    }
+  },
+  drawSpike(ctx,x,y) {
+    ctx.fillStyle=PAL.spike;
+    for(let i=0;i<4;i++){
+      const sx=x+i*4;
+      ctx.fillRect(sx+1,y+10,2,6); ctx.fillRect(sx,y+12,4,4);
+      ctx.fillStyle='#aabbcc'; ctx.fillRect(sx+1,y+10,1,2); ctx.fillStyle=PAL.spike;
+    }
+  },
+  drawDug(ctx,x,y,timer) {
+    const pr=timer/300, h=Math.floor(TILE*(1-pr));
+    ctx.fillStyle=PAL.brick; ctx.fillRect(x,y,TILE,h);
+    if(h>2){ctx.fillStyle=PAL.brickHi; ctx.fillRect(x,y,TILE,2);}
+  }
+};
+
+// ============================================================
+// PARTICLES
+// ============================================================
+function spawnParticles(x,y,color,count=8) {
+  for(let i=0;i<count;i++){
+    game.particles.push({
+      x,y,vx:(Math.random()-0.5)*3,vy:(Math.random()-0.5)*3-1,
+      life:30+Math.random()*20,maxLife:50,color,size:1+Math.random()*2
+    });
+  }
+}
+
+function updateParticles() {
+  for(let i=game.particles.length-1;i>=0;i--){
+    const p=game.particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.08; p.life--;
+    if(p.life<=0) game.particles.splice(i,1);
+  }
+}
+
+function drawParticles() {
+  const ctx=game.pCtx;
+  ctx.clearRect(0,0,game.pCanvas.width,game.pCanvas.height);
+  for(const p of game.particles){
+    ctx.globalAlpha=p.life/p.maxLife;
+    ctx.fillStyle=p.color;
+    ctx.fillRect(
+      p.x*game.scale+game.offsetX,
+      p.y*game.scale+game.offsetY,
+      p.size*game.scale, p.size*game.scale
+    );
+  }
+  ctx.globalAlpha=1;
+}
+
+// ============================================================
+// MAP HELPERS
+// ============================================================
+function parseLevel(idx) {
+  const level=LEVELS[idx]; game.map=[];
+  game.enemies=[]; game.gems=0; game.totalGems=0;
+  game.exitOpen=false; game.dugTiles=[]; game.particles=[];
+
+  for(let r=0;r<ROWS;r++){
+    game.map[r]=[];
+    const row=level.map[r]||'';
+    for(let c=0;c<COLS;c++){
+      const ch=row[c]||'.';
+      switch(ch){
+        case 'B': game.map[r][c]=T.BRICK; break;
+        case 'G': game.map[r][c]=T.GOLD_BRICK; break;
+        case 'H': game.map[r][c]=T.LADDER; break;
+        case '~': game.map[r][c]=T.ROPE; break;
+        case '4': game.map[r][c]=T.GEM; game.totalGems++; break;
+        case '5':
+          game.map[r][c]=T.EMPTY;
+          game.player={x:c*TILE,y:r*TILE,vx:0,vy:0,onGround:false,onLadder:false,onRope:false,frame:0,dir:1,dead:false,invincible:0};
+          break;
+        case '6':
+          game.map[r][c]=T.EMPTY;
+          game.enemies.push({x:c*TILE,y:r*TILE,vx:0,vy:0,dir:1,onGround:false,onLadder:false,frame:0,trapped:0,thinkTimer:0});
+          break;
+        case '7': game.map[r][c]=T.EXIT; break;
+        case '^': game.map[r][c]=T.SPIKE; break;
+        default: game.map[r][c]=T.EMPTY;
+      }
+    }
+  }
+  document.getElementById('hudName').textContent = level.name;
+}
+
+function getTile(gx,gy) {
+  const c=Math.floor(gx/TILE), r=Math.floor(gy/TILE);
+  if(r<0||r>=ROWS||c<0||c>=COLS) return T.BRICK;
+  for(const d of game.dugTiles) { if(d.x===c&&d.y===r) return T.EMPTY; }
+  return game.map[r][c];
+}
+
+function isSolid(gx,gy)  { const t=getTile(gx,gy); return t===T.BRICK||t===T.GOLD_BRICK; }
+function isLadder(gx,gy) { return getTile(gx,gy)===T.LADDER; }
+function isRope(gx,gy)   { return getTile(gx,gy)===T.ROPE; }
+function isSupported(x,y) {
+  const below=y+TILE;
+  for(let cx=x+2;cx<x+TILE-2;cx+=4) { if(isSolid(cx,below)||isSolid(cx,below+1)) return true; }
+  return false;
+}
+
+// ============================================================
+// PLAYER PHYSICS
+// ============================================================
+function updatePlayer() {
+  const p=game.player;
+  if(p.dead) return;
+  if(p.invincible>0) p.invincible--;
+
+  const speed=1.8, gravity=0.15, climbSpeed=1.5;
+  let moveX=0, moveY=0;
+  const k=game.keys, td=game.touchDirs;
+
+  if(k.ArrowLeft||k.KeyA||td.has('left'))  moveX=-1;
+  if(k.ArrowRight||k.KeyD||td.has('right')) moveX=1;
+  if(k.ArrowUp||k.KeyW||td.has('up'))      moveY=-1;
+  if(k.ArrowDown||k.KeyS||td.has('down'))   moveY=1;
+
+  // Digging
+  if(k.KeyZ||k.KeyQ||game.touchActions.has('digL')) { digAt(p,-1); k.KeyZ=false; k.KeyQ=false; game.touchActions.delete('digL'); }
+  if(k.KeyX||k.KeyE||game.touchActions.has('digR')) { digAt(p, 1); k.KeyX=false; k.KeyE=false; game.touchActions.delete('digR'); }
+
+  const cx=p.x+TILE/2, cy=p.y+TILE/2, footY=p.y+TILE;
+  p.onLadder=isLadder(cx,cy);
+  p.onRope=isRope(cx,p.y+4);
+  p.onGround=isSupported(p.x,p.y);
+  if(isLadder(cx,footY)&&!isLadder(cx,cy)&&p.vy>=0) p.onGround=true;
+
+  if(moveX!==0){p.dir=moveX; p.vx=moveX*speed; p.frame+=0.15;}
+  else p.vx=0;
+
+  if(p.onLadder){
+    p.vy = moveY!==0 ? moveY*climbSpeed : 0;
+    if(moveY!==0) p.frame+=0.1;
+  } else if(p.onRope){
+    p.vy = moveY>0 ? climbSpeed : 0;
+  } else {
+    p.vy+=gravity; if(p.vy>5) p.vy=5;
+    if(p.onGround&&p.vy>0){ p.vy=0; p.y=Math.floor(p.y/TILE)*TILE; }
+  }
+
+  applyMovement(p);
+
+  // Tile interactions
+  const pc=Math.floor((p.x+TILE/2)/TILE), pr=Math.floor((p.y+TILE/2)/TILE);
+  if(pr>=0&&pr<ROWS&&pc>=0&&pc<COLS){
+    if(game.map[pr][pc]===T.GEM){
+      game.map[pr][pc]=T.EMPTY; game.gems++; game.score+=100;
+      spawnParticles(p.x+TILE/2,p.y+TILE/2,PAL.gem1,12);
+      Audio.gem();
+      if(game.gems>=game.totalGems){ game.exitOpen=true; Audio.exitOpen(); }
+    }
+    if(game.map[pr][pc]===T.EXIT&&game.exitOpen){ completeLevel(); return; }
+    if(game.map[pr][pc]===T.SPIKE&&p.invincible<=0){ killPlayer(); return; }
+  }
+
+  // Enemy collision
+  for(const e of game.enemies){
+    if(e.trapped>0) continue;
+    if(Math.abs((p.x+TILE/2)-(e.x+TILE/2))<TILE*0.7 && Math.abs((p.y+TILE/2)-(e.y+TILE/2))<TILE*0.7 && p.invincible<=0){
+      killPlayer(); return;
+    }
+  }
+
+  // Crushed by refilling tile
+  for(const d of game.dugTiles){
+    if(d.timer<=20){
+      if(Math.abs((p.x+TILE/2)-(d.x*TILE+TILE/2))<TILE*0.6 && Math.abs((p.y+TILE/2)-(d.y*TILE+TILE/2))<TILE*0.6){
+        killPlayer(); return;
+      }
+    }
+  }
+}
+
+function applyMovement(e) {
+  let nx=e.x+e.vx;
+  if(e.vx>0){ if(isSolid(nx+TILE-2,e.y+2)||isSolid(nx+TILE-2,e.y+TILE-2)){ nx=Math.floor((nx+TILE)/TILE)*TILE-TILE; e.vx=0; }}
+  else if(e.vx<0){ if(isSolid(nx+2,e.y+2)||isSolid(nx+2,e.y+TILE-2)){ nx=Math.floor(nx/TILE+1)*TILE; e.vx=0; }}
+  e.x=Math.max(0,Math.min(nx,(COLS-1)*TILE));
+
+  let ny=e.y+e.vy;
+  if(e.vy>0){ if(isSolid(e.x+2,ny+TILE)||isSolid(e.x+TILE-2,ny+TILE)){ ny=Math.floor(ny/TILE)*TILE; e.vy=0; }}
+  else if(e.vy<0){ if(isSolid(e.x+2,ny)||isSolid(e.x+TILE-2,ny)){ ny=Math.floor(ny/TILE+1)*TILE; e.vy=0; }}
+  e.y=Math.max(0,Math.min(ny,(ROWS-1)*TILE));
+}
+
+function digAt(player,dir) {
+  const pc=Math.floor((player.x+TILE/2)/TILE)+dir;
+  const pr=Math.floor((player.y+TILE/2)/TILE)+1;
+  if(pr<0||pr>=ROWS||pc<0||pc>=COLS) return;
+  if(game.map[pr][pc]===T.GOLD_BRICK){
+    // Prevent duplicate digs
+    for(const d of game.dugTiles) if(d.x===pc&&d.y===pr) return;
+    game.dugTiles.push({x:pc,y:pr,timer:300});
+    spawnParticles(pc*TILE+TILE/2,pr*TILE+TILE/2,PAL.goldBrick,10);
+    game.score+=25;
+    Audio.dig();
+  }
+}
+
+function killPlayer() {
+  const p=game.player;
+  if(p.dead||p.invincible>0) return;
+  p.dead=true; game.lives--;
+  game.screenShake=15;
+  spawnParticles(p.x+TILE/2,p.y+TILE/2,PAL.player1,20);
+  Audio.hurt();
+  setTimeout(()=>{
+    if(game.lives<=0) gameOverScreen();
+    else { parseLevel(game.level); game.player.invincible=120; game.player.dead=false; }
+  },800);
+}
+
+function completeLevel() {
+  game.state='levelComplete';
+  Audio.complete();
+  const bonus=game.lives*500;
+  game.score+=bonus+1000;
+  saveHighScore();
+
+  document.getElementById('levelStats').innerHTML=
+    `GEMS: <span>${game.gems}</span><br><br>`+
+    `LEVEL BONUS: <span>+1000</span><br>`+
+    `LIVES BONUS: <span>+${bonus}</span><br><br>`+
+    `TOTAL SCORE: <span>${game.score}</span>`;
+  show('levelComplete');
+}
+
+function gameOverScreen() {
+  game.state='gameOver';
+  saveHighScore();
+  document.getElementById('finalStats').innerHTML=
+    `LEVEL REACHED: <span>${game.level+1}</span><br><br>`+
+    `FINAL SCORE: <span>${game.score}</span><br>`+
+    `HIGH SCORE: <span>${game.highScore}</span>`;
+  show('gameOver');
+}
+
+function winGame() {
+  game.state='win';
+  game.score+=5000;
+  saveHighScore();
+  document.getElementById('winStats').innerHTML=
+    `ALL 20 LEVELS CLEARED!<br><br>`+
+    `VICTORY BONUS: <span>+5000</span><br>`+
+    `FINAL SCORE: <span>${game.score}</span><br>`+
+    `HIGH SCORE: <span>${game.highScore}</span>`;
+  show('winScreen');
+}
+
+function saveHighScore() {
+  if(game.score>game.highScore){
+    game.highScore=game.score;
+    try{localStorage.setItem('runeraider_hs',game.highScore);}catch(e){}
+  }
+}
+
+// ============================================================
+// ENEMY AI
+// ============================================================
+function updateEnemies() {
+  for(const e of game.enemies){
+    if(e.trapped>0){ e.trapped--; if(e.trapped<=0){e.y=Math.floor(e.y/TILE)*TILE-TILE;e.trapped=0;} continue; }
+
+    const p=game.player;
+    e.onGround=isSupported(e.x,e.y);
+    e.onLadder=isLadder(e.x+TILE/2,e.y+TILE/2);
+
+    e.thinkTimer--;
+    if(e.thinkTimer<=0){
+      e.thinkTimer=15+Math.random()*10;
+      const dx=p.x-e.x, dy=p.y-e.y;
+      if(e.onLadder&&Math.abs(dy)>TILE){ e.vy=dy>0?1:-1; e.vx=0; }
+      else if(e.onGround||e.onLadder){
+        e.vx=dx>0?1:-1; e.dir=e.vx>0?1:-1;
+        if(dy>TILE*2&&isLadder(e.x+TILE/2,e.y+TILE+TILE/2)){e.vy=1;e.vx=0;}
+      }
+    }
+
+    if(!e.onLadder){ e.vy+=0.12; if(e.vy>4)e.vy=4; if(e.onGround&&e.vy>0){e.vy=0;e.y=Math.floor(e.y/TILE)*TILE;} }
+    applyMovement(e);
+    e.frame+=0.1;
+
+    // Trap check
+    const ec=Math.floor((e.x+TILE/2)/TILE), er=Math.floor((e.y+TILE/2)/TILE);
+    for(const d of game.dugTiles){
+      if(d.x===ec&&d.y===er){
+        e.trapped=200; e.x=d.x*TILE; e.y=d.y*TILE; e.vx=0; e.vy=0;
+        game.score+=200; spawnParticles(e.x+TILE/2,e.y+TILE/2,PAL.enemy1,6);
+        Audio.trap(); break;
+      }
+    }
+  }
+}
+
+// ============================================================
+// RENDERING
+// ============================================================
+function render() {
+  const ctx=game.ctx, W=COLS*TILE, H=ROWS*TILE;
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle=PAL.bg; ctx.fillRect(0,0,W,H);
+
+  // Subtle grid
+  ctx.fillStyle='rgba(255,255,255,0.012)';
+  for(let r=0;r<ROWS;r++) ctx.fillRect(0,r*TILE,W,1);
+  for(let c=0;c<COLS;c++) ctx.fillRect(c*TILE,0,1,H);
+
+  // Tiles
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const x=c*TILE, y=r*TILE, tile=game.map[r][c];
+      let isDug=false;
+      for(const d of game.dugTiles){if(d.x===c&&d.y===r){Sprites.drawDug(ctx,x,y,d.timer);isDug=true;break;}}
+      if(isDug) continue;
+      switch(tile){
+        case T.BRICK: Sprites.drawBrick(ctx,x,y); break;
+        case T.GOLD_BRICK: Sprites.drawGoldBrick(ctx,x,y); break;
+        case T.LADDER: Sprites.drawLadder(ctx,x,y); break;
+        case T.ROPE: Sprites.drawRope(ctx,x,y); break;
+        case T.GEM: Sprites.drawGem(ctx,x,y); break;
+        case T.EXIT: Sprites.drawExit(ctx,x,y,game.exitOpen); break;
+        case T.SPIKE: Sprites.drawSpike(ctx,x,y); break;
+      }
+    }
+  }
+
+  // Enemies
+  for(const e of game.enemies){
+    if(e.trapped>0){ctx.globalAlpha=0.5;Sprites.drawEnemy(ctx,e.x,e.y,e.frame);ctx.globalAlpha=1;}
+    else Sprites.drawEnemy(ctx,e.x,e.y,e.frame);
+  }
+
+  // Player
+  const p=game.player;
+  if(!p.dead){
+    if(p.invincible>0&&Math.floor(p.invincible)%6<3){}
+    else Sprites.drawPlayer(ctx,p.x,p.y,p.frame,p.dir);
+  }
+}
+
+// ============================================================
+// RESIZE
+// ============================================================
+function resize() {
+  const container=document.getElementById('gameContainer');
+  const cw=container.clientWidth, ch=container.clientHeight;
+  const W=COLS*TILE, H=ROWS*TILE;
+  const hudH=36;
+  const touchH=window.matchMedia('(hover:none) and (pointer:coarse)').matches||cw<768 ? 170 : 0;
+  const availH=ch-hudH-touchH;
+
+  const scaleX=cw/W, scaleY=availH/H;
+  game.scale=Math.min(scaleX,scaleY);
+  // Snap to 0.5 increments if > 1
+  if(game.scale>1) game.scale=Math.floor(game.scale*2)/2;
+
+  const displayW=W*game.scale, displayH=H*game.scale;
+  game.canvas.width=W; game.canvas.height=H;
+  game.canvas.style.width=displayW+'px'; game.canvas.style.height=displayH+'px';
+  game.offsetX=(cw-displayW)/2;
+  game.offsetY=hudH;
+  game.canvas.style.marginTop=hudH+'px';
+  game.pCanvas.width=cw; game.pCanvas.height=ch;
+  game.ctx.imageSmoothingEnabled=false;
+}
+
+// ============================================================
+// HUD
+// ============================================================
+function updateHUD() {
+  document.getElementById('hudLives').textContent=game.lives;
+  document.getElementById('hudScore').textContent=game.score;
+  document.getElementById('hudGems').textContent=`${game.gems}/${game.totalGems}`;
+  document.getElementById('hudLevel').textContent=game.level+1;
+}
+
+// ============================================================
+// OVERLAY HELPERS
+// ============================================================
+function show(id) { document.getElementById(id).classList.add('show'); }
+function hide(id) { document.getElementById(id).classList.remove('show'); }
+
+function startGame() {
+  Audio.btn();
+  hide('titleScreen'); hide('gameOver'); hide('winScreen');
+  game.level=0; game.score=0; game.lives=3;
+  parseLevel(0); game.state='playing';
+  document.getElementById('pauseBtn').classList.add('show');
+  updateHUD();
+}
+
+function nextLevel() {
+  Audio.btn();
+  hide('levelComplete');
+  game.level++;
+  if(game.level>=LEVELS.length){ winGame(); return; }
+  parseLevel(game.level); game.state='playing'; updateHUD();
+}
+
+function togglePause() {
+  if(game.state==='playing'){
+    game.state='paused'; show('pauseScreen'); Audio.pause();
+  } else if(game.state==='paused'){
+    game.state='playing'; hide('pauseScreen'); Audio.pause();
+  }
+}
+
+// ============================================================
+// GAME LOOP
+// ============================================================
+function gameLoop(ts) {
+  requestAnimationFrame(gameLoop);
+  game.time=ts/1000;
+  game.animFrame++;
+
+  if(game.state==='playing'){
+    updatePlayer(); updateEnemies(); updateParticles();
+    for(let i=game.dugTiles.length-1;i>=0;i--){
+      game.dugTiles[i].timer--;
+      if(game.dugTiles[i].timer<=0) game.dugTiles.splice(i,1);
+    }
+    updateHUD();
+  } else {
+    updateParticles();
+  }
+
+  if(game.screenShake>0){
+    game.screenShake--;
+    const sx=(Math.random()-0.5)*game.screenShake*0.5;
+    const sy=(Math.random()-0.5)*game.screenShake*0.5;
+    game.canvas.style.transform=`translate(${sx}px,${sy}px)`;
+  } else game.canvas.style.transform='';
+
+  render();
+  drawParticles();
+}
+
+// ============================================================
+// INPUT
+// ============================================================
+function setupInput() {
+  window.addEventListener('keydown',e=>{
+    game.keys[e.code]=true;
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
+    if(e.code==='KeyP'||e.code==='Escape') togglePause();
+  });
+  window.addEventListener('keyup',e=>{game.keys[e.code]=false;});
+
+  // D-pad (supports multi-touch)
+  document.querySelectorAll('.dpad-btn').forEach(btn=>{
+    const dir=btn.dataset.dir;
+    const on=e=>{e.preventDefault();game.touchDirs.add(dir);btn.classList.add('active');};
+    const off=e=>{e.preventDefault();game.touchDirs.delete(dir);btn.classList.remove('active');};
+    btn.addEventListener('touchstart',on,{passive:false});
+    btn.addEventListener('touchend',off,{passive:false});
+    btn.addEventListener('touchcancel',off,{passive:false});
+  });
+
+  // Action buttons
+  document.querySelectorAll('.action-btn').forEach(btn=>{
+    const a=btn.dataset.action;
+    btn.addEventListener('touchstart',e=>{e.preventDefault();game.touchActions.add(a);btn.classList.add('active');},{passive:false});
+    btn.addEventListener('touchend',e=>{e.preventDefault();game.touchActions.delete(a);btn.classList.remove('active');},{passive:false});
+    btn.addEventListener('touchcancel',e=>{game.touchActions.delete(a);btn.classList.remove('active');});
+  });
+
+  // Screen buttons
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('nextLevelBtn').addEventListener('click', nextLevel);
+  document.getElementById('retryBtn').addEventListener('click', startGame);
+  document.getElementById('playAgainBtn').addEventListener('click', startGame);
+  document.getElementById('pauseBtn').addEventListener('click', togglePause);
+  document.getElementById('resumeBtn').addEventListener('click', togglePause);
+  document.getElementById('quitBtn').addEventListener('click', ()=>{
+    Audio.btn(); hide('pauseScreen');
+    document.getElementById('pauseBtn').classList.remove('show');
+    game.state='title'; show('titleScreen');
+  });
+}
+
+// ============================================================
+// TITLE PREVIEW
+// ============================================================
+function drawTitlePreview() {
+  const c=document.getElementById('titlePreview');
+  const ctx=c.getContext('2d');
+  ctx.imageSmoothingEnabled=false;
+  ctx.fillStyle=PAL.bg; ctx.fillRect(0,0,192,96);
+  for(let i=0;i<12;i++) Sprites.drawBrick(ctx,i*16,80);
+  Sprites.drawLadder(ctx,80,48); Sprites.drawLadder(ctx,80,64);
+  [96,112,128,144].forEach(x=>Sprites.drawBrick(ctx,x,48));
+  game.time=Date.now()/1000;
+  Sprites.drawGem(ctx,120,32); Sprites.drawGem(ctx,48,64);
+  Sprites.drawPlayer(ctx,24,64,Date.now()/200,1);
+  Sprites.drawEnemy(ctx,144,32,Date.now()/250);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  game.canvas=document.getElementById('gameCanvas');
+  game.ctx=game.canvas.getContext('2d');
+  game.pCanvas=document.getElementById('particleCanvas');
+  game.pCtx=game.pCanvas.getContext('2d');
+  game.ctx.imageSmoothingEnabled=false;
+
+  setupInput(); resize();
+  window.addEventListener('resize',resize);
+  // Also handle orientation change
+  window.addEventListener('orientationchange',()=>setTimeout(resize,200));
+
+  drawTitlePreview();
+  requestAnimationFrame(gameLoop);
+}
+
+document.addEventListener('DOMContentLoaded',init);
+
+// Unlock audio on first interaction
+['touchstart','click','keydown'].forEach(evt=>{
+  document.addEventListener(evt,function unlock(){
+    try{
+      const c=new(window.AudioContext||window.webkitAudioContext)();
+      c.resume().then(()=>c.close());
+    }catch(e){}
+    document.removeEventListener(evt,unlock);
+  },{once:true});
+});
+</script>
+</body>
+</html>
